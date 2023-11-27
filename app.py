@@ -1,48 +1,56 @@
 import dearpygui.dearpygui as dpg
 import socket
-
-global currentPage,default
+import json
+global currentPage,default,ip_addresses
 
 currentPage=1
 default=True
+ip_addresses=[]
 
 
 dpg.create_context()
-dpg.create_viewport(title='Custom Title', width=1000, height=600,resizable=False)
+dpg.create_viewport(title='Custom Title', width=1000, height=600,resizable=False,small_icon="assets/icon.ico",large_icon="assets/icon.ico")
 
 def page1_callback(sender,app_data):
-    global default,currentPage
+    global default,currentPage,ip_addresses
     if currentPage!=1 or default==True:
         currentPage=1
         default=False
         if dpg.does_alias_exist("page2"):
-            dpg.remove_alias("page2")
+            dpg.delete_item("page2", children_only=False)
         with dpg.window(label="Configuration", width=1000, height=600,no_collapse=True,tag="page1",no_resize=True,no_move=True,no_close=True):
+            with dpg.menu_bar():
+                with dpg.menu(label="Menu"):
+                    dpg.add_menu_item(label="Configuration")
+                    dpg.add_menu_item(label="A propos", callback=page2_callback)
             dpg.add_input_text(label="ip de la seedbox",tag="input1")
             dpg.add_text(default_value="l'ip est invalide",tag="notif1",show=False,color=(255,0,0))
             dpg.add_button(label="submit",callback=verifyInput,user_data="1")
             dpg.add_input_text(label="ip du serveur plex",tag="input2")
             dpg.add_text(default_value="l'ip est invalide",tag="notif2",show=False,color=(255,0,0))
             dpg.add_button(label="submit",callback=verifyInput,user_data="2")
-            with dpg.menu_bar():
-                with dpg.menu(label="Menu"):
-                    dpg.add_menu_item(label="Configuration")
-                    dpg.add_menu_item(label="A propos", callback=page2_callback)
+            dpg.add_checkbox(label="suggest ip", callback=showIpSuggestion)
+            
+            dpg.add_radio_button(label="radio",items= ip_addresses, tag="radio",show=False,callback=selectIp)
+
+            dpg.add_radio_button(show=False)
+            
 
 def page2_callback(sender,app_data):
     global default,currentPage
     if currentPage!=2:
         currentPage=2
         if dpg.does_alias_exist("page1"):
-            dpg.remove_alias("page1")
+            dpg.delete_item("page1", children_only=False)
         with dpg.window(label="A propos", width=1000, height=600,no_collapse=True,tag="page2",no_resize=True,no_move=True,no_close=True):  
-            dpg.add_text(default_value="Cette application permet de configurer les ip des differentes machines sans avoir a modifier les fichiers bash.",pos=(80,300))
-            dpg.add_text(default_value="par Lafon Rafael, Suckiel Theo, Leroi Remi, Bertaud Nathan",pos=(20,530))
-            
             with dpg.menu_bar():
                 with dpg.menu(label="Menu"):
                     dpg.add_menu_item(label="Configuration",callback= page1_callback)
                     dpg.add_menu_item(label="A propos")    
+            dpg.add_text(default_value="Cette application permet de configurer les ip des differentes machines sans avoir a modifier les fichiers bash.",pos=(80,300))
+            dpg.add_text(default_value="par Lafon Rafael, Suckiel Theo, Leroi Remi, Bertaud Nathan",pos=(20,530))
+            
+            
 
 def verifyInput(sender,app_data,user_data):
     print("notif"+user_data)
@@ -50,7 +58,28 @@ def verifyInput(sender,app_data,user_data):
         dpg.show_item("notif"+user_data)
     else:
        dpg.hide_item("notif"+user_data)
+       with open("config.json", "r") as jsonFile:
+        data = json.load(jsonFile)
+        if user_data=="1":
+                data["seedboxIP"]=dpg.get_value("input1")
+
+        elif user_data=="2":
+            data["PlexIP"]=dpg.get_value("input2")
+
+        with open("config.json", "w") as jsonFile:
+            json.dump(data, jsonFile)
+
+
     
+def showIpSuggestion(sender,app_data):
+    if dpg.is_item_shown("radio"):
+        dpg.hide_item("radio")
+    else:
+        dpg.show_item("radio")
+
+def selectIp(sender,app_data):
+    dpg.set_value("input2",dpg.get_value("radio"))
+
 
 
 
@@ -76,6 +105,9 @@ def verifyip(user_data) :
     
 
 def launch():
+    global ip_addresses
+    local_hostname = socket.gethostname()
+    ip_addresses = socket.gethostbyname_ex(local_hostname)[2]
     page1_callback(None,None)
     dpg.setup_dearpygui()
     dpg.show_viewport()
