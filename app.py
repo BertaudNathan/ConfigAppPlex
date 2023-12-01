@@ -9,7 +9,7 @@ ip_addresses=[]
 
 
 dpg.create_context()
-dpg.create_viewport(title='Custom Title', width=1000, height=600,resizable=False,small_icon="assets/icon.ico",large_icon="assets/icon.ico")
+dpg.create_viewport(title='Application de configuration', width=1000, height=600,resizable=False,small_icon="assets/icon.ico",large_icon="assets/icon.ico")
 
 def page1_callback(sender,app_data):
     global default,currentPage,ip_addresses
@@ -23,13 +23,18 @@ def page1_callback(sender,app_data):
                 with dpg.menu(label="Menu"):
                     dpg.add_menu_item(label="Configuration")
                     dpg.add_menu_item(label="A propos", callback=page2_callback)
+            dpg.add_input_text(label="utilisateur de la seedbox",tag="input4")
+            dpg.add_button(label="Valider",callback=verifyInput,user_data="4")
             dpg.add_input_text(label="ip de la seedbox",tag="input1")
             dpg.add_text(default_value="l'ip est invalide",tag="notif1",show=False,color=(255,0,0))
-            dpg.add_button(label="submit",callback=verifyInput,user_data="1")
+            dpg.add_button(label="Valider",callback=verifyInput,user_data="1")
+            dpg.add_input_text(label="utilisateur du serveur plex",tag="input3")
+            dpg.add_button(label="Valider",callback=verifyInput,user_data="3")
             dpg.add_input_text(label="ip du serveur plex",tag="input2")
             dpg.add_text(default_value="l'ip est invalide",tag="notif2",show=False,color=(255,0,0))
-            dpg.add_button(label="submit",callback=verifyInput,user_data="2")
-            dpg.add_checkbox(label="suggest ip", callback=showIpSuggestion)
+            dpg.add_button(label="Valider",callback=verifyInput,user_data="2")
+            dpg.add_checkbox(label="suggestion d'ip", callback=showIpSuggestion)
+            
             
             dpg.add_radio_button(label="radio",items= ip_addresses, tag="radio",show=False,callback=selectIp)
 
@@ -53,18 +58,21 @@ def page2_callback(sender,app_data):
             
 
 def verifyInput(sender,app_data,user_data):
-    print("notif"+user_data)
-    if verifyip(user_data)==False:
+    if verifyip(user_data)==False and (user_data==1 or user_data==2):
         dpg.show_item("notif"+user_data)
-    else:
+    elif verifyip(user_data)==True and (user_data==1 or user_data==2):
        dpg.hide_item("notif"+user_data)
-       with open("config.json", "r") as jsonFile:
+    with open("config.json", "r") as jsonFile:
         data = json.load(jsonFile)
         if user_data=="1":
                 data["seedboxIP"]=dpg.get_value("input1")
 
         elif user_data=="2":
             data["PlexIP"]=dpg.get_value("input2")
+        elif user_data=="3":
+            data["PlexName"]=dpg.get_value("input3")
+        elif user_data=="4":
+            data["SeedName"]=dpg.get_value("input4")
 
         with open("config.json", "w") as jsonFile:
             json.dump(data, jsonFile)
@@ -88,7 +96,7 @@ def verifyip(user_data) :
         address=dpg.get_value("input1")
     else:
          address=dpg.get_value("input2") 
-    print(address)
+
     try:
         socket.inet_pton(socket.AF_INET, address)
     except AttributeError:  # no inet_pton here, sorry
